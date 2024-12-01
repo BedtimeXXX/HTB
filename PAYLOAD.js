@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Define repository paths
-HULK_REPO="https://github.com/BedtimeXXX/HTB/PAYLOAD.git"
-pullme_REPO="https://github.com/BedtimeXXX/HTB/PAYLOAD.git"
+HULK_REPO="git@github.com:safebuffer/hulk.git"
+pullme_REPO="git@github.com:safebuffer/submod.git"
 
 # Final Exploit Repo
-SMASH_REPO="https://github.com/BedtimeXXX/HTB/PAYLOAD.git"
+SMASH_REPO="git@github.com:safebuffer/smash.git"
 
 # Function to clone and set up the hook repository
 setup_HULK_REPO() {
